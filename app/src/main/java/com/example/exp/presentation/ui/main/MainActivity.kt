@@ -16,6 +16,7 @@ import com.example.exp.data.local.entity.RawEventEntity
 import com.example.exp.data.repository.RawEventRepository
 import com.example.exp.data.source.parser.SimpleSmsParser
 import com.example.exp.domain.classifier.TransactionClassifier
+import com.example.exp.domain.contact.ContactMatcher
 import com.example.exp.domain.processor.RawEventProcessor
 import com.example.exp.presentation.MainViewModel
 import com.example.exp.ui.theme.ExpTheme
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
         val transactionDao = db.transactionDao()
 
         val classifier = TransactionClassifier()
+        val contactMatcher = ContactMatcher()
         val repository = RawEventRepository(rawEventDao)
         val parser = SimpleSmsParser()
 
@@ -49,7 +51,8 @@ class MainActivity : ComponentActivity() {
             repository = repository,
             transactionDao = transactionDao,
             parser = parser,
-            classifier = classifier
+            classifier = classifier,
+            contactMatcher = contactMatcher
         )
 
         val viewModel = MainViewModel(processor)
