@@ -13,7 +13,7 @@ fun Transaction.toEntity(): TransactionEntity {
         category = category,
         type = type.name,
         source = source.name,
-        confidence = confidence.name,
+        confidenceScore = confidenceScore,
         transactionTime = transactionTime,
         rawEventId = rawEventId
     )

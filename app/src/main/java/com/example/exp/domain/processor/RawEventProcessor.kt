@@ -2,13 +2,16 @@ package com.example.exp.domain.processor
 
 import com.example.exp.data.local.dao.TransactionDao
 import com.example.exp.data.local.entity.TransactionEntity
+import com.example.exp.data.local.mapper.toEntity
 import com.example.exp.data.repository.RawEventRepository
 import com.example.exp.data.source.parser.SimpleSmsParser
+import com.example.exp.domain.classifier.TransactionClassifier
 
 class RawEventProcessor(
     private val repository: RawEventRepository,
     private val transactionDao: TransactionDao,
-    private val parser: SimpleSmsParser
+    private val parser: SimpleSmsParser,
+    private val classifier: TransactionClassifier
 ) {
 
     suspend fun processBatch() {
@@ -25,19 +28,16 @@ class RawEventProcessor(
 
                 if (transaction != null) {
 
-                    val entity = TransactionEntity(
-                        id = transaction.id,
-                        amount = transaction.amount,
-                        currency = transaction.currency,
-                        merchantName = transaction.merchantName,
-                        normalizedName = transaction.normalizedName,
-                        category = transaction.category,
-                        type = transaction.type.name,
-                        source = transaction.source.name,
-                        confidence = transaction.confidence.name,
-                        transactionTime = transaction.transactionTime,
+                    val (type, confidenceScore) =
+                        classifier.classify(transaction.merchantName)
+
+                    val updated = transaction.copy(
+                        type = type,
+                        confidenceScore = confidenceScore,
                         rawEventId = event.id
                     )
+
+                    val entity = updated.toEntity()
 
                     transactionDao.insert(entity)
                 }

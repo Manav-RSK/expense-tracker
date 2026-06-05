@@ -4,29 +4,24 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import com.example.exp.data.local.db.AppDatabase
 import com.example.exp.data.local.entity.RawEventEntity
 import com.example.exp.data.repository.RawEventRepository
 import com.example.exp.data.source.parser.SimpleSmsParser
+import com.example.exp.domain.classifier.TransactionClassifier
 import com.example.exp.domain.processor.RawEventProcessor
 import com.example.exp.presentation.MainViewModel
 import com.example.exp.ui.theme.ExpTheme
-import java.util.UUID
-import androidx.compose.material3.Button
-import androidx.compose.ui.Alignment
-import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
 
@@ -34,36 +29,37 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // 🔧 Manual dependency creation (temporary)
+        val testMessages = listOf(
+            "Rs 1000 sent to Aman Raj",
+            "Paid Rs 250 to abc@oksbi",
+            "Rs 700 paid to Rakesh",
+            "Rs 1200 spent on Amazon"
+        )
+
+        // 🔧 Dependencies
         val db = AppDatabase.getInstance(applicationContext)
         val rawEventDao = db.rawEventDao()
         val transactionDao = db.transactionDao()
 
+        val classifier = TransactionClassifier()
         val repository = RawEventRepository(rawEventDao)
         val parser = SimpleSmsParser()
 
         val processor = RawEventProcessor(
             repository = repository,
             transactionDao = transactionDao,
-            parser = parser
+            parser = parser,
+            classifier = classifier
         )
 
         val viewModel = MainViewModel(processor)
 
-        // 🧪 Insert test data (ONLY FOR NOW)
-        runBlocking(Dispatchers.IO) {
-            rawEventDao.insert(
-                RawEventEntity(
-                    id = UUID.randomUUID().toString(),
-                    rawText = "Rs 500 spent on Swiggy",
-                    sender = "HDFC", // ✅ add this
-                    source = "SMS",
-                    eventTime = System.currentTimeMillis(), // ✅ add this
-                    receivedAt = System.currentTimeMillis(),
-                    processed = false,
-                    sourceId = "test_src_id_1"
-                )
-            )
+        val clearDatabase: () -> Unit = {
+            lifecycleScope.launch(Dispatchers.IO) {
+                rawEventDao.clearAll()
+                transactionDao.clearAll()
+            }
+            Unit   // 🔥 force return type
         }
 
         setContent {
@@ -81,7 +77,7 @@ class MainActivity : ComponentActivity() {
                                 rawEventDao.insert(
                                     RawEventEntity(
                                         id = UUID.randomUUID().toString(),
-                                        rawText = "Rs 500 spent on Swiggy",
+                                        rawText = testMessages.random(),
                                         sender = "HDFC",
                                         source = "SMS",
                                         eventTime = System.currentTimeMillis(),
@@ -94,30 +90,44 @@ class MainActivity : ComponentActivity() {
                                 // 2. Run pipeline
                                 viewModel.runPipeline()
                             }
-                        }
+                        },
+
+                        onClearDb = clearDatabase // ✅ FIXED
                     )
                 }
             }
         }
-
-
     }
 }
+
 @Composable
 fun MainScreen(
     modifier: Modifier = Modifier,
-    onRunPipeline: () -> Unit
+    onRunPipeline: () -> Unit,
+    onClearDb: () -> Unit
 ) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Button(
-            onClick = onRunPipeline,
-            modifier = Modifier
-                .wrapContentSize()
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Run Pipeline")
+
+            Button(onClick = onRunPipeline) {
+                Text("Run Pipeline")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = onClearDb,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Clear DB")
+            }
         }
     }
 }

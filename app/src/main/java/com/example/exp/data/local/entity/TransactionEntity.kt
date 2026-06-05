@@ -22,7 +22,7 @@ data class TransactionEntity(
 
     val source: String,
 
-    val confidence: String,            // ✅ added
+    val confidenceScore: Int,            // ✅ added
 
     val transactionTime: Long,
 

@@ -18,7 +18,7 @@ data class Transaction(
 
     val source: TransactionSource,
 
-    val confidence: ConfidenceLevel,
+    val confidenceScore: Int,
 
     val transactionTime: Long,
 
