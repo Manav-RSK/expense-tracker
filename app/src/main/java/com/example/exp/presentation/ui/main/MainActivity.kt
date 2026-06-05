@@ -7,6 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.flow.Flow
+import com.example.exp.presentation.screen.transaction.TransactionUiState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -20,6 +22,7 @@ import com.example.exp.domain.contact.ContactMatcher
 import com.example.exp.domain.history.HistoryMatcher
 import com.example.exp.domain.processor.RawEventProcessor
 import com.example.exp.presentation.MainViewModel
+import com.example.exp.presentation.screen.transaction.TransactionScreen
 import com.example.exp.ui.theme.ExpTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -58,7 +61,7 @@ class MainActivity : ComponentActivity() {
             historyMatcher = historyMatcher
         )
 
-        val viewModel = MainViewModel(processor)
+        val viewModel = MainViewModel(processor, transactionDao)
 
         val clearDatabase: () -> Unit = {
             lifecycleScope.launch(Dispatchers.IO) {
@@ -98,7 +101,8 @@ class MainActivity : ComponentActivity() {
                             }
                         },
 
-                        onClearDb = clearDatabase // ✅ FIXED
+                        onClearDb = clearDatabase, // ✅ FIXED
+                        transactionsFlow = viewModel.transactions
                     )
                 }
             }
@@ -110,30 +114,9 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     modifier: Modifier = Modifier,
     onRunPipeline: () -> Unit,
-    onClearDb: () -> Unit
+    onClearDb: () -> Unit,
+    transactionsFlow: Flow<List<TransactionUiState>>
 ) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-            Button(onClick = onRunPipeline) {
-                Text("Run Pipeline")
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
-                onClick = onClearDb,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("Clear DB")
-            }
-        }
-    }
+    // Delegate UI to the transaction screen implemented under presentation.screen.transaction
+    TransactionScreen(modifier = modifier, onRunPipeline = onRunPipeline, onClearDb = onClearDb, transactionsFlow = transactionsFlow)
 }
