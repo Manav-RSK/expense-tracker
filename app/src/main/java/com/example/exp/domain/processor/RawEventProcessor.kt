@@ -1,7 +1,7 @@
 package com.example.exp.domain.processor
 
 import com.example.exp.data.local.dao.TransactionDao
-import com.example.exp.data.local.entity.TransactionEntity
+import com.example.exp.domain.contact.ContactMatcher
 import com.example.exp.data.local.mapper.toEntity
 import com.example.exp.data.repository.RawEventRepository
 import com.example.exp.data.source.parser.SimpleSmsParser
@@ -11,7 +11,8 @@ class RawEventProcessor(
     private val repository: RawEventRepository,
     private val transactionDao: TransactionDao,
     private val parser: SimpleSmsParser,
-    private val classifier: TransactionClassifier
+    private val classifier: TransactionClassifier,
+    private val contactMatcher: ContactMatcher
 ) {
 
     suspend fun processBatch() {
@@ -31,9 +32,16 @@ class RawEventProcessor(
                     val (type, confidenceScore) =
                         classifier.classify(transaction.merchantName)
 
+                    val contactScore =
+                        contactMatcher.getScore(transaction.merchantName)
+
+                    val finalScore =
+                        (confidenceScore + contactScore)
+                            .coerceAtMost(100)
+
                     val updated = transaction.copy(
                         type = type,
-                        confidenceScore = confidenceScore,
+                        confidenceScore = finalScore,
                         rawEventId = event.id
                     )
 

@@ -34,10 +34,22 @@ class SimpleSmsParser {
     }
 
     private fun extractMerchant(text: String): String? {
+
+        val lower = text.lowercase()
+
         return when {
-            text.contains("Swiggy", true) -> "Swiggy"
-            text.contains("Amazon", true) -> "Amazon"
-            else -> null
+
+            lower.contains("spent on") ->
+                text.substringAfter("spent on").trim()
+
+            lower.contains("paid to") ->
+                text.substringAfter("paid to").trim()
+
+            lower.contains("sent to") ->
+                text.substringAfter("sent to").trim()
+
+            else ->
+                null
         }
     }
 
