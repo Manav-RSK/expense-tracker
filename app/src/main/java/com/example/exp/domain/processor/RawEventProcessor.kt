@@ -6,14 +6,16 @@ import com.example.exp.data.local.mapper.toEntity
 import com.example.exp.data.repository.RawEventRepository
 import com.example.exp.data.source.parser.SimpleSmsParser
 import com.example.exp.domain.classifier.TransactionClassifier
+import com.example.exp.domain.history.HistoryMatcher
 
 class RawEventProcessor(
     private val repository: RawEventRepository,
     private val transactionDao: TransactionDao,
     private val parser: SimpleSmsParser,
     private val classifier: TransactionClassifier,
-    private val contactMatcher: ContactMatcher
-) {
+    private val contactMatcher: ContactMatcher,
+    private val historyMatcher: HistoryMatcher
+){
 
     suspend fun processBatch() {
 
@@ -35,8 +37,13 @@ class RawEventProcessor(
                     val contactScore =
                         contactMatcher.getScore(transaction.merchantName)
 
+                    val historyScore =
+                        historyMatcher.getScore(
+                            transaction.normalizedName
+                        )
+
                     val finalScore =
-                        (confidenceScore + contactScore)
+                        (confidenceScore + contactScore + historyScore)
                             .coerceAtMost(100)
 
                     val updated = transaction.copy(

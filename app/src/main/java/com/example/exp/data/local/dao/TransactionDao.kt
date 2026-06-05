@@ -14,4 +14,13 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions")
     suspend fun clearAll()
+
+    @Query("""
+    SELECT COUNT(*)
+    FROM transactions
+    WHERE normalizedName = :normalizedName
+""")
+    suspend fun countTransactions(
+        normalizedName: String
+    ): Int
 }
