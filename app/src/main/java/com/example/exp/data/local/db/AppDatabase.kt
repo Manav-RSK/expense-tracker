@@ -14,7 +14,7 @@ import com.example.exp.data.local.entity.TransactionEntity
         RawEventEntity::class,
         TransactionEntity::class
     ],
-    version = 2
+    version = 3
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun rawEventDao(): RawEventDao
@@ -30,7 +30,10 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "app_database"
-                ).build().also { INSTANCE = it }
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
+                    .also { INSTANCE = it }
             }
         }
     }

@@ -22,7 +22,7 @@ class SimpleSmsParser {
             category = categorize(merchant),
             type = classifyType(merchant),
             source = TransactionSource.SMS,
-            confidence = ConfidenceLevel.MEDIUM,
+            confidenceScore = 0,
             transactionTime = System.currentTimeMillis(),
             rawEventId = "" // will set later
         )
