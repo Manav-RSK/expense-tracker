@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.exp.data.local.dao.TransactionDao
 import com.example.exp.domain.processor.RawEventProcessor
+import com.example.exp.data.repository.RawEventRepository
 import com.example.exp.presentation.screen.transaction.TransactionUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -13,7 +14,8 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val processor: RawEventProcessor,
-    private val transactionDao: TransactionDao? = null
+    private val transactionDao: TransactionDao? = null,
+    private val repository: RawEventRepository? = null
 ) : ViewModel() {
 
     // Expose transactions as a flow of UI models. If DAO isn't provided, return empty list flow.
@@ -32,6 +34,22 @@ class MainViewModel(
     fun runPipeline() {
         viewModelScope.launch(Dispatchers.IO) {
             processor.processBatch()
+        }
+    }
+
+    init {
+        // If a repository is available, automatically trigger processing when new
+        // raw events are inserted. This enables near-realtime processing when the
+        // NotificationCaptureService inserts rows.
+        if (repository != null) {
+            viewModelScope.launch {
+                repository.newEvents().collect {
+                    // run processing in IO
+                    viewModelScope.launch(Dispatchers.IO) {
+                        processor.processBatch()
+                    }
+                }
+            }
         }
     }
 }
